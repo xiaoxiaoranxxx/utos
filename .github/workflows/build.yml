@@ -60,6 +60,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: amd64
           CGO_ENABLED: 0
+        shell: bash
         run: |
           mkdir -p dist
           FILE_NAME="dist/utos_cli_${{ matrix.goos }}${{ matrix.ext }}"
