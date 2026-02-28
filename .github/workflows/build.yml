@@ -65,8 +65,12 @@ jobs:
           mkdir -p dist
           FILE_NAME="dist/utos_cli_${{ matrix.goos }}${{ matrix.ext }}"
           go build -ldflags "-s -w -extldflags '-static'" -o "$FILE_NAME" ./cmd/cli
-          # 对 CLI 二进制文件进行 UPX 压缩
-          upx --best "$FILE_NAME"
+          # 对 CLI 二进制文件进行 UPX 压缩 (macOS 需根据版本支持决定是否跳过或使用特定参数)
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            upx --best --force-macos "$FILE_NAME" || echo "UPX failed on macOS, skipping..."
+          else
+            upx --best "$FILE_NAME"
+          fi
 
       - name: Build GUI
         env:
