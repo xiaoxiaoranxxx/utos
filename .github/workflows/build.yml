@@ -41,6 +41,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev xorg-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
 
+      - name: Install UPX
+        uses: svenstaro/upx-action@v2
+        with:
+          tag: "v4.2.4"
+
       - name: Install Dependencies
         run: go mod tidy
 
@@ -48,9 +53,13 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: amd64
+          CGO_ENABLED: 0
         run: |
           mkdir -p dist
-          go build -ldflags "-s -w" -o dist/utos_cli_${{ matrix.goos }}${{ matrix.ext }} ./cmd/cli
+          FILE_NAME="dist/utos_cli_${{ matrix.goos }}${{ matrix.ext }}"
+          go build -ldflags "-s -w -extldflags '-static'" -o "$FILE_NAME" ./cmd/cli
+          # 对 CLI 二进制文件进行 UPX 压缩
+          upx --best "$FILE_NAME"
 
       - name: Build GUI
         env:
@@ -60,10 +69,15 @@ jobs:
         shell: bash
         run: |
           LDFLAGS="-s -w"
+          FILE_NAME="dist/utos_gui_${{ matrix.goos }}${{ matrix.ext }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             LDFLAGS="$LDFLAGS -H windowsgui"
           fi
-          go build -ldflags "$LDFLAGS" -o dist/utos_gui_${{ matrix.goos }}${{ matrix.ext }} ./cmd/gui
+          go build -ldflags "$LDFLAGS" -o "$FILE_NAME" ./cmd/gui
+          # 仅针对 Windows GUI 进行 UPX 压缩
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            upx --best "$FILE_NAME"
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
